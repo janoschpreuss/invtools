@@ -1,9 +1,6 @@
 #ifndef FILE_GLOBALSPACETIMEFESPACE
 #define FILE_GLOBALSPACETIMEFESPACE
 
-// Partially based on ngsolve/comp/numberfespace.hpp
-
-
 #include <core/register_archive.hpp>
 
 #include <finiteelement.hpp>
@@ -36,19 +33,22 @@ class GlobalCompoundSpaceTimeSpace : public CompoundFESpace
   ;
 
   public:
+    int ndofspace;
     /*
       constructor. 
       Arguments are the access to the mesh data structure,
       and the flags from the define command in the pde-file
       or the kwargs in the Python constructor.
     */
-    ;
+    //;
+
    
     GlobalCompoundSpaceTimeSpace (shared_ptr<MeshAccess> ama,
 		     const Flags & flags, bool parseflags = false);
 
     GlobalCompoundSpaceTimeSpace (shared_ptr<MeshAccess> ama,
 		     const Array<shared_ptr<FESpace>> & aspaces,
+		     const int andofspace,
 		     const Flags & flags, bool parseflags = false);
 
 
@@ -57,7 +57,7 @@ class GlobalCompoundSpaceTimeSpace : public CompoundFESpace
 
     static DocInfo GetDocu();
 
-    // void Update() override;
+    void Update() override;
     
     //void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
     //FiniteElement & GetFE (ElementId ei, Allocator & alloc) const override;
