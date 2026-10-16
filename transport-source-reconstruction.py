@@ -1,5 +1,5 @@
 # ------------------------------ LOAD LIBRARIES -------------------------------
-from netgen.geom2d import unit_square
+from netgen.geom2d import unit_square,SplineGeometry
 from ngsolve import *
 from xfem import *
 from math import pi
@@ -11,31 +11,54 @@ solver = "pardiso"
 
 # -------------------------------- PARAMETERS ---------------------------------
 # Space finite element order
-order = 3
+order = 2
 # Time finite element order
-k_t = order   
+#k_t = order  
+k_t = 4 
 # Final simulation time
+#tend = 2.0
 tend = 2.0
-N = 1
+N = 16
 #N = 32
 # Time step
 delta_t = tend / N 
-gamma = 10 
-#gamma = 0.0 
+gamma = 1
+gamma_lsq_t = 1.0 
+#gamma = 0.0 i
 gamma_data = 1e4
-#gamma_stab = 1.0
+#gamma_data = 1e0
+#gamma_data = 1e0
+#gamma_data = 1e5
 gamma_stab = 100.0
+#gamma_stab = 0.0
+#gamma_stab = 1e-1
+#gamma_stab = 1e-1
+
+
+hmaxs = [0.8,0.4,0.2,0.1,0.05] 
+hmax = hmaxs[4]
 # ----------------------------------- MAIN ------------------------------------
 #mesh = Mesh(unit_square.GenerateMesh(maxh=0.03, quad_dominated=False))
-#mesh = Mesh(unit_square.GenerateMesh(maxh=0.04, quad_dominated=False))
-mesh = Mesh(unit_square.GenerateMesh(maxh=0.05, quad_dominated=False))
+
+#square = SplineGeometry()
+#square.AddRectangle([-0.5,-0.5], [0.5,0.5], bc=1)
+#geo = SplineGeometry()
+#geo.AddCircle((0,0),0.5,bc="circle")
+#mesh = Mesh(square.GenerateMesh(maxh=hmax, quad_dominated=False))
+mesh = Mesh(unit_square.GenerateMesh(maxh=hmax, quad_dominated=False))
+#mesh = Mesh(unit_square.GenerateMesh(maxh=0.1, quad_dominated=False))
+#mesh = Mesh(unit_square.GenerateMesh(maxh=0.1, quad_dominated=False))
+#mesh = Mesh(unit_square.GenerateMesh(maxh=0.05, quad_dominated=False))
 h = specialcf.mesh_size
+normal = specialcf.normal(mesh.dim)
+#dst = delta_t * dxtref(mesh, time_order=2*k_t + 2, skeleton=True, vb=BND)
 dst = delta_t * dxtref(mesh, time_order=2*k_t + 2, skeleton=True, vb=BND)
 
 H_coeff = CoefficientFunction((1.0 ,0.0))
+#H_coeff = CoefficientFunction((cos(x) ,cos(y)))
 p_coeff = CoefficientFunction(0.0)
 
-
+#InnerProduct(H_coeff, ) 
 
 def dt(u):
     return 1.0 / delta_t * dtref(u)
@@ -72,6 +95,18 @@ def Solve_least_squares(mesh,N):
     t_slice = [n*delta_t + delta_t*tref for n in range(N)]
     
 
+    #u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
+    #ut0_exact_slice =  cos(x) * cos(y) 
+    #utt_exact_slice = [ (-1) *  sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    #gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+     
+    #R_slice = [  cos(  t_slice[n] ) * cos(x) - H_coeff[0] * sin( t_slice[n]) * sin(x) + p_coeff * sin( t_slice[n]) * cos(x) for n in range(N) ]
+    #Rt_slice = [ (-1) * sin( t_slice[n] ) * cos(x) - H_coeff[0] * cos( t_slice[n]) * sin(x) +  p_coeff * cos( t_slice[n]) * cos(x) for n in range(N) ]
+    #f_spatial = cos(y) 
+
+
     u_exact_slice = [ sin(pi * t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
     ut_exact_slice = [ pi * cos(pi * t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
     ut0_exact_slice =  pi * cos(x) * cos(y) 
@@ -84,15 +119,6 @@ def Solve_least_squares(mesh,N):
     f_spatial = cos(y) 
 
 
-    #u_exact_slice = [sin(pi * t_slice[n]) * sin(pi * x)**2 * sin(pi * y)**2 for n in range(N)]
-    #ut_exact_slice = [ pi * cos(pi * t_slice[n]) * sin(pi * x)**2 * sin(pi * y)**2 for n in range(N)]
-    #ut0_exact_slice = pi * sin(pi * x)**2 * sin(pi * y)**2 
-    #utt_exact_slice = [ (-1) * pi**2 * sin(pi * t_slice[n]) * sin(pi * x)**2 * sin(pi * y)**2 for n in range(N)]
-    #gradu_exact_slice = [ CoefficientFunction(( 2 * pi * sin(pi * t_slice[n]) * cos(pi * x) * sin(pi * x) * sin(pi * y)**2, 2 * pi * sin(pi * t_slice[n]) * sin(pi * x)**2 *  cos(pi * y) * sin(pi * y)  ))  for n in range(N)]
-    #gradut_exact_slice = [ CoefficientFunction(( 2 * pi**2 * cos(pi * t_slice[n]) * cos(pi * x) * sin(pi * x) * sin(pi * y)**2, 2 * pi**2 * cos(pi * t_slice[n]) * sin(pi * x)**2 *  cos(pi * y) * sin(pi * y)  ))  for n in range(N)]
-    #f_slice  = [ ut_exact_slice[n] + InnerProduct(H_coeff, gradu_exact_slice[n]) + p_coeff * u_exact_slice[n]  for n in range(N) ] 
-    #ft_slice = [ utt_exact_slice[n] + InnerProduct(H_coeff, gradut_exact_slice[n]) + p_coeff * ut_exact_slice[n]  for n in range(N) ] 
-    #ut_grad_H_exact_slice = [ InnerProduct(gradut_exact_slice[n],H_coeff)  for n in range(N)]
 
     f_slice  = [ f_spatial * R_slice[n]  for n in range(N) ] 
     ft_slice = [ f_spatial * Rt_slice[n]  for n in range(N) ] 
@@ -190,6 +216,7 @@ def Solve_least_squares(mesh,N):
 
 def Solve_for_source(mesh,N):
 
+    #dxt = delta_t * dxtref(mesh, time_order=2*k_t+2)
     dxt = delta_t * dxtref(mesh, time_order=2*k_t+2)
     dSigma = dst 
     dxold = dmesh(mesh, tref=0)
@@ -198,16 +225,43 @@ def Solve_for_source(mesh,N):
     t = told + delta_t * tref
     t_slice = [n*delta_t + delta_t*tref for n in range(N)]
     
-    u_exact_slice = [ sin(pi * t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
-    ut_exact_slice = [ pi * cos(pi * t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
-    ut0_exact_slice =  pi * cos(x) * cos(y) 
-    utt_exact_slice = [ (-1) * pi**2 * sin(pi * t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
-    gradu_exact_slice = [ CoefficientFunction(( (-1) * sin(pi * t_slice[n]) * sin(x) * cos(y)  , (-1) * sin(pi * t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
-    gradut_exact_slice = [ CoefficientFunction(( (-1) * pi * cos(pi * t_slice[n]) * sin(x) * cos(y)  , (-1) * pi * cos(pi * t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    #u_exact_slice = [ sin(pi * t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #ut_exact_slice = [ pi * cos(pi * t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
+    #ut0_exact_slice =  pi * cos(x) * cos(y) 
+    #utt_exact_slice = [ (-1) * pi**2 * sin(pi * t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #gradu_exact_slice = [ CoefficientFunction(( (-1) * sin(pi * t_slice[n]) * sin(x) * cos(y)  , (-1) * sin(pi * t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    #gradut_exact_slice = [ CoefficientFunction(( (-1) * pi * cos(pi * t_slice[n]) * sin(x) * cos(y)  , (-1) * pi * cos(pi * t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
      
-    R_slice = [ pi * cos( pi * t_slice[n] ) * cos(x) - H_coeff[0] * sin(pi * t_slice[n]) * sin(x) + p_coeff * sin(pi * t_slice[n]) * cos(x) for n in range(N) ]
-    Rt_slice = [ (-1) * pi**2 * sin( pi * t_slice[n] ) * cos(x) - pi * H_coeff[0] * cos(pi * t_slice[n]) * sin(x) + pi * p_coeff * cos(pi * t_slice[n]) * cos(x) for n in range(N) ]
+    #R_slice = [ pi * cos( pi * t_slice[n] ) * cos(x) - H_coeff[0] * sin(pi * t_slice[n]) * sin(x) + p_coeff * sin(pi * t_slice[n]) * cos(x) for n in range(N) ]
+    #Rt_slice = [ (-1) * pi**2 * sin( pi * t_slice[n] ) * cos(x) - pi * H_coeff[0] * cos(pi * t_slice[n]) * sin(x) + pi * p_coeff * cos(pi * t_slice[n]) * cos(x) for n in range(N) ]
+    #f_spatial = cos(y) 
+
+
+    u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
+    ut0_exact_slice =  cos(x) * cos(y) 
+    utt_exact_slice = [ (-1) *  sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+     
+    R_slice = [  cos(  t_slice[n] ) * cos(x) - H_coeff[0] * sin( t_slice[n]) * sin(x) + p_coeff * sin( t_slice[n]) * cos(x) for n in range(N) ]
+    Rt_slice = [ (-1) * sin( t_slice[n] ) * cos(x) - H_coeff[0] * cos( t_slice[n]) * sin(x) +  p_coeff * cos( t_slice[n]) * cos(x) for n in range(N) ]
     f_spatial = cos(y) 
+
+    #u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
+    #ut0_exact_slice =  cos(x) * cos(y) 
+    #utt_exact_slice = [ (-1) *  sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    #gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    #gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+     
+    #R_slice = [  cos(  t_slice[n] )  - sin( t_slice[n] ) * ( sin(x) + sin(y)  )    for n in range(N) ]
+    #Rt_slice = [ (-1) * sin(  t_slice[n] )  - cos( t_slice[n] ) * ( sin(x) + sin(y)  )   for n in range(N) ]
+    #f_spatial = cos(x) * cos(y) 
+
+
+
+
 
     #f_slice  = [ f_spatial * R_slice[n]  for n in range(N) ] 
     #ft_slice = [ f_spatial * Rt_slice[n]  for n in range(N) ] 
@@ -227,8 +281,11 @@ def Solve_for_source(mesh,N):
     #a += (1/delta_t)**2 * fix_Dtref(u[0],time=0) * fix_Dtref(v[0],time=0)  * dmesh(mesh) 
     for n in range(N):
         a += (L_diffop(u[n]) - R_slice[n] * fh) * (L_diffop(v[n]) - R_slice[n] * gh) * dxt
-        a += (dtL_diffop(u[n]) - Rt_slice[n] * fh) * (dtL_diffop(v[n]) - Rt_slice[n] * gh)  * dxt
-        a += gamma_data *  dt(u[n]) * dt(v[n]) * dSigma 
+        a += gamma_lsq_t * (dtL_diffop(u[n]) - Rt_slice[n] * fh) * (dtL_diffop(v[n]) - Rt_slice[n] * gh)  * dxt
+        a += gamma_data * dt(u[n]) * dt(v[n]) * dSigma
+
+        
+        #a += gamma_data * (1.0/h) * dt(u[n]) * dt(v[n]) * dSigma 
         
         if n > 0:
             a += gamma_stab * (1.0/delta_t**2) * InnerProduct( fix_Dtref_Grad(u[n],time=0)-fix_Dtref_Grad(u[n-1],time=1),  fix_Dtref_Grad(v[n],time=0)-fix_Dtref_Grad(v[n-1],time=1)) * dmesh(mesh) # ok
@@ -250,7 +307,11 @@ def Solve_for_source(mesh,N):
     for n in range(N):
         #f +=  f_slice[n] * L_diffop(v[n]) * dxt
         #f +=  ft_slice[n] * dtL_diffop(v[n]) * dxt
-        f += gamma_data * ut_exact_slice[n] * dt(v[n]) * dSigma 
+        #f += gamma_data * sqrt(InnerProduct(normal,H_coeff)**2) * ut_exact_slice[n] * dt(v[n]) * dSigma
+        f += gamma_data * ut_exact_slice[n] * dt(v[n]) * dSigma
+        #f += gamma_data * (1.0/h)* ut_exact_slice[n] * dt(v[n]) * dSigma
+
+         
 
     f.Assemble()
 
@@ -289,9 +350,27 @@ def Solve_for_source(mesh,N):
         l2_error_sum += l2error
     print("dt-res-error= ", sqrt( l2_error_sum ))
 
+    l2_error_sum = 0.0 
+    for n in range(1,N): 
+        res_n1 = (1.0/delta_t**2) * (fix_Dtref(gfu.components[n],time=0)-fix_Dtref(gfu.components[n-1],time=1)) 
+        res_n2 =  (1.0/delta_t**2) * InnerProduct( fix_Dtref_Grad(gfu.components[n],time=0)-fix_Dtref_Grad(gfu.components[n-1],time=1), fix_Dtref_Grad(gfu.components[n],time=0)-fix_Dtref_Grad(gfu.components[n-1],time=1)) 
+        res_n3 = ( fix_Dtref( gfu.components[n],time=0,element_vb=BND)-fix_Dtref(gfu.components[n-1],time=1,element_vb=BND)) 
+        l2error = Integrate( (res_n1**2 + res_n2)  * dmesh(mesh),mesh)
+        #l2error += Integrate( res_n3**2  *  dsmesh(mesh, element_vb=BND) ,mesh)
+        l2_error_sum += l2error
+    print("jump-error= ", sqrt( l2_error_sum ))
 
-    l2_error_source = sqrt(Integrate((f_spatial - gff)**2 * dx, mesh))
-    print("l2_error source= ", sqrt( l2_error_source ))
+    #chi = IfPos(0.5-x,1.0,0.0) 
+    chi = 1.0
+    l2_error_source = sqrt(Integrate(chi * (f_spatial - gff)**2 * dx, mesh))
+    #help(Integrate)
+    #l2_error_source = sqrt(Integrate((f_spatial - gff)**2 * dx(bonus_intorder=10), mesh))
+    print("l2_error source= ",  l2_error_source )
+    Draw(sqrt((f_spatial - gff)**2), mesh, 'error'   )
+    Draw( gff, mesh, 'gff'   )
+    Draw( f_spatial, mesh, 'fref'   )
+    Draw(fix_tref(gfu.components[0],time=0),mesh,'u0')
+    #input("")
 
 Solve_for_source(mesh,N)
 
@@ -308,6 +387,8 @@ delta_t = tend / N
 gamma = 10 
 gamma_data = 1e4
 gamma_stab = 100.0
+
+mesh = Mesh(unit_square.GenerateMesh(maxh=0.05, quad_dominated=False))
 
 l2_error u
 l2_errors = [ 0.3224683047427635,0.5274009054078607,0.04560999294416,0.0032809181513545854,0.0002172026904258848]
