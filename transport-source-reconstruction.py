@@ -11,13 +11,13 @@ solver = "pardiso"
 
 # -------------------------------- PARAMETERS ---------------------------------
 # Space finite element order
-order = 2
+order = 3
 # Time finite element order
 #k_t = order  
-k_t = 4 
+k_t = 4
 # Final simulation time
 #tend = 2.0
-tend = 2.0
+tend = 1.0
 N = 16
 #N = 32
 # Time step
@@ -29,23 +29,26 @@ gamma_data = 1e4
 #gamma_data = 1e0
 #gamma_data = 1e0
 #gamma_data = 1e5
-gamma_stab = 100.0
+#gamma_stab = 100.0
+gamma_stab = 1.0
 #gamma_stab = 0.0
 #gamma_stab = 1e-1
 #gamma_stab = 1e-1
 
 
-hmaxs = [0.8,0.4,0.2,0.1,0.05] 
-hmax = hmaxs[4]
+#hmaxs = [0.8,0.4,0.2,0.1,0.05] 
+hmaxs = [1/2,1/4,1/8,1/16,1/32] 
+hmax = hmaxs[3]
 # ----------------------------------- MAIN ------------------------------------
 #mesh = Mesh(unit_square.GenerateMesh(maxh=0.03, quad_dominated=False))
 
-#square = SplineGeometry()
+square = SplineGeometry()
+square.AddRectangle([0.0,0.0], [0.5,0.5], bc=1)
 #square.AddRectangle([-0.5,-0.5], [0.5,0.5], bc=1)
 #geo = SplineGeometry()
 #geo.AddCircle((0,0),0.5,bc="circle")
-#mesh = Mesh(square.GenerateMesh(maxh=hmax, quad_dominated=False))
-mesh = Mesh(unit_square.GenerateMesh(maxh=hmax, quad_dominated=False))
+mesh = Mesh(square.GenerateMesh(maxh=hmax, quad_dominated=False))
+#mesh = Mesh(unit_square.GenerateMesh(maxh=hmax, quad_dominated=False))
 #mesh = Mesh(unit_square.GenerateMesh(maxh=0.1, quad_dominated=False))
 #mesh = Mesh(unit_square.GenerateMesh(maxh=0.1, quad_dominated=False))
 #mesh = Mesh(unit_square.GenerateMesh(maxh=0.05, quad_dominated=False))
@@ -54,8 +57,8 @@ normal = specialcf.normal(mesh.dim)
 #dst = delta_t * dxtref(mesh, time_order=2*k_t + 2, skeleton=True, vb=BND)
 dst = delta_t * dxtref(mesh, time_order=2*k_t + 2, skeleton=True, vb=BND)
 
-H_coeff = CoefficientFunction((1.0 ,0.0))
-#H_coeff = CoefficientFunction((cos(x) ,cos(y)))
+#H_coeff = CoefficientFunction((1.0 ,0.0))
+H_coeff = CoefficientFunction((cos(x) ,cos(y)))
 p_coeff = CoefficientFunction(0.0)
 
 #InnerProduct(H_coeff, ) 
@@ -237,17 +240,6 @@ def Solve_for_source(mesh,N):
     #f_spatial = cos(y) 
 
 
-    u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
-    ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
-    ut0_exact_slice =  cos(x) * cos(y) 
-    utt_exact_slice = [ (-1) *  sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
-    gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
-    gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
-     
-    R_slice = [  cos(  t_slice[n] ) * cos(x) - H_coeff[0] * sin( t_slice[n]) * sin(x) + p_coeff * sin( t_slice[n]) * cos(x) for n in range(N) ]
-    Rt_slice = [ (-1) * sin( t_slice[n] ) * cos(x) - H_coeff[0] * cos( t_slice[n]) * sin(x) +  p_coeff * cos( t_slice[n]) * cos(x) for n in range(N) ]
-    f_spatial = cos(y) 
-
     #u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
     #ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
     #ut0_exact_slice =  cos(x) * cos(y) 
@@ -255,9 +247,20 @@ def Solve_for_source(mesh,N):
     #gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
     #gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
      
-    #R_slice = [  cos(  t_slice[n] )  - sin( t_slice[n] ) * ( sin(x) + sin(y)  )    for n in range(N) ]
-    #Rt_slice = [ (-1) * sin(  t_slice[n] )  - cos( t_slice[n] ) * ( sin(x) + sin(y)  )   for n in range(N) ]
-    #f_spatial = cos(x) * cos(y) 
+    #R_slice = [  cos(  t_slice[n] ) * cos(x) - H_coeff[0] * sin( t_slice[n]) * sin(x) + p_coeff * sin( t_slice[n]) * cos(x) for n in range(N) ]
+    #Rt_slice = [ (-1) * sin( t_slice[n] ) * cos(x) - H_coeff[0] * cos( t_slice[n]) * sin(x) +  p_coeff * cos( t_slice[n]) * cos(x) for n in range(N) ]
+    #f_spatial = cos(y) 
+
+    u_exact_slice = [ sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    ut_exact_slice = [ cos( t_slice[n]) * cos(x) * cos(y)   for n in range(N)]
+    ut0_exact_slice =  cos(x) * cos(y) 
+    utt_exact_slice = [ (-1) *  sin( t_slice[n]) * cos(x) * cos(y)  for n in range(N)]
+    gradu_exact_slice = [ CoefficientFunction(( (-1) * sin( t_slice[n]) * sin(x) * cos(y)  , (-1) * sin( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+    gradut_exact_slice = [ CoefficientFunction(( (-1) *  cos( t_slice[n]) * sin(x) * cos(y)  , (-1) * cos( t_slice[n]) * cos(x) * sin(y) ))  for n in range(N)]
+     
+    R_slice = [  cos(  t_slice[n] )  - sin( t_slice[n] ) * ( sin(x) + sin(y)  )    for n in range(N) ]
+    Rt_slice = [ (-1) * sin(  t_slice[n] )  - cos( t_slice[n] ) * ( sin(x) + sin(y)  )   for n in range(N) ]
+    f_spatial = cos(x) * cos(y) 
 
 
 
